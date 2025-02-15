@@ -8,7 +8,7 @@ int main(void)
     const int screenWidth = 800;
     const int screenHeight = 450;
 
-    InitWindow(screenWidth, screenHeight, "raylib [core] example - 3d camera first person");
+    InitWindow(screenWidth, screenHeight, "raylib 3d");
 
     Camera camera = { 0 };
     camera.position = { 0.0f, 2.0f, 4.0f };    // Camera position
