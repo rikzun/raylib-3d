@@ -1,0 +1,20 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "C:/w64devkit/bin/sh.exe",
+            "args": [
+                "-c",
+                "build.sh"
+            ]
+        },
+        {
+            "label": "run",
+            "type": "shell",
+            "dependsOn": "build",
+            "command": "./output/application.exe"
+        }
+    ]
+}
