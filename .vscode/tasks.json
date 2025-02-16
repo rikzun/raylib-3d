@@ -5,7 +5,7 @@
             "label": "debug::build",
             "type": "shell",
             "command": "C:/w64devkit/bin/sh.exe",
-            "args": [ "-c", "./debug-build.sh" ]
+            "args": [ "-c", "./debug-build.sh $0" ]
         },
         {
             "label": "debug::run",
@@ -17,7 +17,7 @@
             "label": "release::build",
             "type": "shell",
             "command": "C:/w64devkit/bin/sh.exe",
-            "args": [ "-c", "./release-build.sh" ]
+            "args": [ "-c", "./release-build.sh $0" ]
         },
         {
             "label": "release::run",
