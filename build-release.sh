@@ -10,4 +10,4 @@ SOURCE_FOLDER=$WORKSPACE/src
 SOURCE_FILES=$(find $SOURCE_FOLDER -type f -name "*.cpp")
 
 mkdir -p $OUTPUT_FOLDER
-$DEVKIT/gcc -B $DEVKIT -I $HEADERS_FOLDER -o $OUTPUT_FILE $SOURCE_FILES -lraylib -lgdi32 -lwinmm -Wl,--subsystem,windows
+$DEVKIT/gcc -B $DEVKIT -I $HEADERS_FOLDER -o $OUTPUT_FILE $SOURCE_FILES -lraylib -lgdi32 -lwinmm -std=c++2b -Wl,--subsystem,windows
