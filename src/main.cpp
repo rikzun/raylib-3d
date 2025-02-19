@@ -1,25 +1,23 @@
 #include "raylib.h"
 #include "rcamera.h"
 
+#define PLAYER_WALK_SPEED 0.15f
+#define PLAYER_RUN_SPEED 0.3f
+#define PLAYER_VERT_SPEED 0.2f
+#define MOUSE_SENSIVITY 0.1f
 #define MAX_COLUMNS 20
 
-int main(void)
+int main()
 {
-    const int screenWidth = 800;
-    const int screenHeight = 450;
-
-    InitWindow(screenWidth, screenHeight, "raylib 3d");
+    InitWindow(800, 600, "raylib 3d");
 
     Camera camera = { 0 };
-    camera.position = { 0.0f, 2.0f, 4.0f };    // Camera position
-    camera.target = { 0.0f, 2.0f, 0.0f };      // Camera looking at point
-    camera.up = { 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
-    camera.fovy = 60.0f;                       // Camera field-of-view Y
-    camera.projection = CAMERA_PERSPECTIVE;    // Camera projection type
+    camera.position = { 1.0f, 2.0f, 1.0f };
+    camera.target = { 1.0f, 2.0f, 0.0f };
+    camera.up = { 0.0f, 1.0f, 0.0f };
+    camera.fovy = 60.0f;
+    camera.projection = CAMERA_PERSPECTIVE;
 
-    int cameraMode = CAMERA_FIRST_PERSON;
-
-    // Generates some random columns
     float heights[MAX_COLUMNS] = { 0 };
     Vector3 positions[MAX_COLUMNS] = { 0 };
     Color colors[MAX_COLUMNS] = { 0 };
@@ -34,21 +32,35 @@ int main(void)
     DisableCursor();
     SetTargetFPS(60);
 
-    while (!WindowShouldClose())
-    {
-        UpdateCamera(&camera, cameraMode); // Update camera
+    bool info = false;
+
+    while (!WindowShouldClose()) {
+        float speed = IsKeyDown(KEY_LEFT_SHIFT)
+            ? PLAYER_RUN_SPEED
+            : PLAYER_WALK_SPEED;
+
+        UpdateCameraPro(&camera,
+            {
+                IsKeyDown(KEY_W) * speed - IsKeyDown(KEY_S) * speed,
+                IsKeyDown(KEY_D) * speed - IsKeyDown(KEY_A) * speed,
+                IsKeyDown(KEY_Q) * -PLAYER_VERT_SPEED +
+                IsKeyDown(KEY_E) * PLAYER_VERT_SPEED +
+                (GetMouseWheelMove() / 2)
+            },
+            {
+                GetMouseDelta().x * MOUSE_SENSIVITY,
+                GetMouseDelta().y * MOUSE_SENSIVITY,
+                0.0f
+            },
+            0
+        );
 
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        ClearBackground(SKYBLUE);
+
         BeginMode3D(camera);
 
-        // walls
         DrawPlane({ 0.0f, 0.0f, 0.0f }, { 32.0f, 32.0f }, LIGHTGRAY);
-        DrawCube({ -16.0f, 2.5f, 0.0f }, 1.0f, 5.0f, 32.0f, BLUE);
-        DrawCube({ 16.0f, 2.5f, 0.0f }, 1.0f, 5.0f, 32.0f, LIME);
-        DrawCube({ 0.0f, 2.5f, 16.0f }, 32.0f, 5.0f, 1.0f, GOLD);
-
-        // Draw some cubes around
         for (int i = 0; i < MAX_COLUMNS; i++)
         {
             DrawCube(positions[i], 2.0f, heights[i], 2.0f, colors[i]);
@@ -56,9 +68,22 @@ int main(void)
         }
 
         EndMode3D();
+
+        if (IsKeyReleased(KEY_F1)) {
+            info = !info;
+        }
+        
+        if (info) {
+            DrawText(TextFormat("fps: %i", GetFPS()), 1, 1, 20, BLACK);
+            DrawText(TextFormat("frame: %i", GetFrameTime()), 1, 21, 20, BLACK);
+            DrawText(TextFormat("pos_x: %.2f", camera.position.x), 1, 41, 20, BLACK);
+            DrawText(TextFormat("pos_y: %.2f", camera.position.y), 1, 61, 20, BLACK);
+            DrawText(TextFormat("pos_z: %.2f", camera.position.z), 1, 81, 20, BLACK);
+        }
+
         EndDrawing();
     }
 
-    CloseWindow(); // Close window and OpenGL context
+    CloseWindow();
     return 0;
 }
