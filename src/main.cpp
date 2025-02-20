@@ -1,5 +1,6 @@
-#include "raylib.h"
-#include "rcamera.h"
+#include <raylib.h>
+#include <rcamera.h>
+#include "mod_loader.h"
 
 #define PLAYER_WALK_SPEED 0.15f
 #define PLAYER_RUN_SPEED 0.3f
@@ -32,6 +33,7 @@ int main()
     DisableCursor();
     SetTargetFPS(60);
 
+    auto func = loadModDll();
     bool info = false;
 
     while (!WindowShouldClose()) {
@@ -79,6 +81,7 @@ int main()
             DrawText(TextFormat("pos_x: %.2f", camera.position.x), 1, 41, 20, BLACK);
             DrawText(TextFormat("pos_y: %.2f", camera.position.y), 1, 61, 20, BLACK);
             DrawText(TextFormat("pos_z: %.2f", camera.position.z), 1, 81, 20, BLACK);
+            if (func) DrawText(TextFormat("%i", func(GetTime())), 1, 101, 20, BLACK);
         }
 
         EndDrawing();

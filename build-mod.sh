@@ -4,10 +4,9 @@ WORKSPACE=$(dirname "$(realpath $0)")
 DEVKIT=$(dirname "$(realpath $1)")
 
 OUTPUT_FOLDER="$WORKSPACE/output"
-OUTPUT_FILE="$OUTPUT_FOLDER/debug.exe"
+OUTPUT_FILE="$OUTPUT_FOLDER/mod.dll"
 HEADERS_FOLDER="$WORKSPACE/includes"
-SOURCE_FOLDER="$WORKSPACE/src"
-SOURCE_FILES=$(find $SOURCE_FOLDER -type f -name "*.cpp")
+SOURCE_FILE="$WORKSPACE/mod.cpp"
 
 mkdir -p $OUTPUT_FOLDER
 
@@ -15,10 +14,9 @@ mkdir -p $OUTPUT_FOLDER
     -B "$DEVKIT" \
     -I "$HEADERS_FOLDER" \
     -o "$OUTPUT_FILE" \
-    $SOURCE_FILES \
-    -lraylib \
-    -lgdi32 \
-    -lwinmm \
+    $SOURCE_FILE \
+    -shared \
+    -fPIC \
     -std=c++2b \
     -O2 \
     -Wl,--gc-sections \

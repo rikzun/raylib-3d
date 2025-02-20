@@ -24,6 +24,12 @@
             "type": "shell",
             "dependsOn": "release::build",
             "command": "./output/release.exe"
-        }
+        },
+        {
+            "label": "mod build",
+            "type": "shell",
+            "command": "C:/w64devkit/bin/sh.exe",
+            "args": [ "-c", "./build-mod.sh $0" ]
+        },
     ]
 }
