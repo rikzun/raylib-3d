@@ -1,6 +1,6 @@
 #define export extern "C" __declspec(dllexport)
 
-export int multiply(int value)
+export bool modfunc()
 {
-    return value * 2;
+    return true;
 }
