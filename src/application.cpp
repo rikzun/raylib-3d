@@ -10,6 +10,7 @@
 
 Shader shader;
 Light light;
+Model sun;
 
 Application::Application()
 {
@@ -29,7 +30,13 @@ Application::Application()
     int ambientLoc = GetShaderLocation(shader, "ambient");
     SetShaderValue(shader, ambientLoc, (float[4]){ 0.1f, 0.1f, 0.1f, 1.0f }, SHADER_UNIFORM_VEC4);
 
-    light = CreateLight(LIGHT_DIRECTIONAL, { 0, 40, 0 }, { 0, 30, 0 }, YELLOW, shader);
+    light = CreateLight(LIGHT_DIRECTIONAL, { 5, 20, 5 }, { 0, 0, 0 }, YELLOW, shader);
+
+    Mesh sphere = GenMeshSphere(1.0f, 16, 16);
+    sun = LoadModelFromMesh(sphere);
+    Texture2D sunTexture = LoadTexture("assets/sun.png"); 
+    sun.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sunTexture;
+    
 
     Mesh grassMesh = GenMeshCube(1.0f, 1.0f, 1.0f);
     m_grass_model = LoadModelFromMesh(grassMesh);
@@ -91,18 +98,18 @@ void Application::ProcessInput()
 
 void Application::Render3D()
 {
-    // fix that
-    light.position.x = light.position.x * (float)sin(PI * GetTime());
+    light.position.x = (light.position.x || 0.1f) * (float)sin(PI * GetTime() / 6.0f) * 25.0f;
+    light.position.z = (light.position.z || 0.1f) * (float)cos(PI * GetTime() / 6.0f) * 25.0f;
+
     SetShaderValue(shader, shader.locs[SHADER_LOC_VECTOR_VIEW], &m_camera.position, SHADER_UNIFORM_VEC3);
     UpdateLightValues(shader, light);
 
     ClearBackground(SKYBLUE);
     BeginShaderMode(shader);
 
-    for (int i = 0; i < MAX_LIGHTS; i++)
-    {
-        DrawSphereEx(light.position, 1.0f, 8, 8, light.color);
-    }
+    //DrawSphereEx(light.position, 1.0f, 8, 8, light.color);
+    DrawModel(sun, light.position, 1.0f, WHITE);
+
 
     for (int i = 0; i < blocks.size(); i++)
     {
