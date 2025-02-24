@@ -1,5 +1,6 @@
 #include <application.h>
 #include <algorithm>
+#include <iostream>
 
 #define MOUSE_SENSIVITY 0.1f
 #define BLOCKS 20
@@ -20,6 +21,14 @@ Application::Application()
 
     Texture2D grassTexture = LoadTexture("assets/grass.png"); 
     m_grass_model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = grassTexture;
+
+    for (int i = 0; i < BLOCKS; i++)
+    {
+        for (int ii = 0; ii < BLOCKS; ii++)
+        {
+            blocks.push_back({ i, 0, ii });
+        }
+    }
 }
 
 void Application::loop()
@@ -68,15 +77,13 @@ void Application::Render3D()
 {
     ClearBackground(SKYBLUE);
 
-    for (int i = 0; i < BLOCKS; i++)
+    for (int i = 0; i < blocks.size(); i++)
     {
-        for (int ii = 0; ii < BLOCKS; ii++)
-        {
-            Vector3 pos = { 0.5f + i, 0.5f, 0.5f + ii };
+        Block block = blocks[i];
+        Vector3 pos = { block.x + 0.5f, block.y + 0.5f, block.z + 0.5f };
 
-            DrawModel(m_grass_model, pos, 1.0f, WHITE);
-            if (m_f2) DrawModelWires(m_grass_model, pos, 1.0f, BLACK);
-        }
+        DrawModel(m_grass_model, pos, 1.0f, WHITE);
+        if (m_f2) DrawModelWires(m_grass_model, pos, 1.0f, BLACK);
     }
 
     if (m_f1) DrawGrid(100, 1.0f);
