@@ -1,14 +1,21 @@
 #include <application.h>
 #include <algorithm>
 #include <iostream>
+#define RLIGHTS_IMPLEMENTATION
+#include <rlights.h>
+#include <raymath.h>
 
 #define MOUSE_SENSIVITY 0.1f
 #define BLOCKS 20
+
+Shader shader;
+Light light;
 
 Application::Application()
 {
     InitWindow(800, 600, "raylib 3d");
     DisableCursor();
+    SetConfigFlags(FLAG_MSAA_4X_HINT); 
 
     m_camera.position = { 1.0f, 2.0f, 1.0f };
     m_camera.target = { 1.0f, 2.0f, 0.0f };
@@ -16,11 +23,20 @@ Application::Application()
     m_camera.fovy = 60.0f;
     m_camera.projection = CAMERA_PERSPECTIVE;
 
+    shader = LoadShader("assets/lighting.vs", "assets/lighting.fs");
+    shader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(shader, "viewPos");
+
+    int ambientLoc = GetShaderLocation(shader, "ambient");
+    SetShaderValue(shader, ambientLoc, (float[4]){ 0.1f, 0.1f, 0.1f, 1.0f }, SHADER_UNIFORM_VEC4);
+
+    light = CreateLight(LIGHT_DIRECTIONAL, { 0, 40, 0 }, { 0, 30, 0 }, YELLOW, shader);
+
     Mesh grassMesh = GenMeshCube(1.0f, 1.0f, 1.0f);
     m_grass_model = LoadModelFromMesh(grassMesh);
 
     Texture2D grassTexture = LoadTexture("assets/grass.png"); 
     m_grass_model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = grassTexture;
+    m_grass_model.materials[0].shader = shader;
 
     for (int i = 0; i < BLOCKS; i++)
     {
@@ -75,7 +91,18 @@ void Application::ProcessInput()
 
 void Application::Render3D()
 {
+    // fix that
+    light.position.x = light.position.x * (float)sin(PI * GetTime());
+    SetShaderValue(shader, shader.locs[SHADER_LOC_VECTOR_VIEW], &m_camera.position, SHADER_UNIFORM_VEC3);
+    UpdateLightValues(shader, light);
+
     ClearBackground(SKYBLUE);
+    BeginShaderMode(shader);
+
+    for (int i = 0; i < MAX_LIGHTS; i++)
+    {
+        DrawSphereEx(light.position, 1.0f, 8, 8, light.color);
+    }
 
     for (int i = 0; i < blocks.size(); i++)
     {
@@ -85,6 +112,8 @@ void Application::Render3D()
         DrawModel(m_grass_model, pos, 1.0f, WHITE);
         if (m_f2) DrawModelWires(m_grass_model, pos, 1.0f, BLACK);
     }
+
+    EndShaderMode();
 
     if (m_f1) DrawGrid(100, 1.0f);
 }
