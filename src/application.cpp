@@ -4,13 +4,29 @@
 #define RLIGHTS_IMPLEMENTATION
 #include <rlights.h>
 #include <raymath.h>
+#include <random>
 
 #define MOUSE_SENSIVITY 0.1f
-#define BLOCKS 20
+#define BLOCKS 16
 
 Shader shader;
 Light light;
 Model sun;
+
+std::vector<float> GenerateHeightMap(int seed) {
+    std::vector<float> heightMap(BLOCKS * BLOCKS);
+    std::mt19937 localGen(seed);
+    std::uniform_real_distribution<float> noiseDist(-0.5f, 0.5f);
+    
+    for (int x = 0; x < BLOCKS; ++x) {
+        float baseHeight = 10.0f + 5.0f * std::sin(x * 0.3f) + 3.0f * std::sin(x * 0.1f);
+        for (int y = 0; y < BLOCKS; ++y) {
+            float variation = noiseDist(localGen);
+            heightMap[y + x] = std::round(baseHeight + variation);
+        }
+    }
+    return heightMap;
+}
 
 Application::Application()
 {
@@ -18,7 +34,7 @@ Application::Application()
     DisableCursor();
     SetConfigFlags(FLAG_MSAA_4X_HINT); 
 
-    m_camera.position = { 1.0f, 2.0f, 1.0f };
+    m_camera.position = { 1.0f, 25.0f, 1.0f };
     m_camera.target = { 1.0f, 2.0f, 0.0f };
     m_camera.up = { 0.0f, 1.0f, 0.0f };
     m_camera.fovy = 60.0f;
@@ -45,11 +61,19 @@ Application::Application()
     m_grass_model.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = grassTexture;
     m_grass_model.materials[0].shader = shader;
 
-    for (int i = 0; i < BLOCKS; i++)
-    {
+    auto heighMap = GenerateHeightMap(1337);
+    for (int i = 0; i < BLOCKS; i++) {
         for (int ii = 0; ii < BLOCKS; ii++)
         {
-            blocks.push_back({ i, 0, ii });
+            int y = (int)heighMap[i + ii];
+
+            for (int iii = y; iii > 0; iii--)
+            {
+                blocks.push_back(Block{ i, iii, ii });
+                blocks.push_back(Block{ -i, iii, ii });
+                blocks.push_back(Block{ i, iii, -ii });
+                blocks.push_back(Block{ -i, iii, -ii });
+            }
         }
     }
 }
