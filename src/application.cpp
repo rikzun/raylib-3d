@@ -1,10 +1,10 @@
-#include <application.h>
+#include "application.h"
 #include <algorithm>
 #include <iostream>
-#define RLIGHTS_IMPLEMENTATION
-#include <rlights.h>
+#include "rlights.h"
 #include <raymath.h>
 #include <random>
+#include <rlgl.h>
 
 #define MOUSE_SENSIVITY 0.1f
 #define BLOCKS 16
@@ -33,6 +33,7 @@ Application::Application()
     InitWindow(800, 600, "raylib 3d");
     DisableCursor();
     SetConfigFlags(FLAG_MSAA_4X_HINT); 
+    SetTargetFPS(60);
 
     m_camera.position = { 1.0f, 25.0f, 1.0f };
     m_camera.target = { 1.0f, 2.0f, 0.0f };
@@ -44,7 +45,9 @@ Application::Application()
     shader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(shader, "viewPos");
 
     int ambientLoc = GetShaderLocation(shader, "ambient");
-    SetShaderValue(shader, ambientLoc, (float[4]){ 0.1f, 0.1f, 0.1f, 1.0f }, SHADER_UNIFORM_VEC4);
+    float a[4] = { 0.1f, 0.1f, 0.1f, 1.0f };
+    
+    SetShaderValue(shader, ambientLoc, a, SHADER_UNIFORM_VEC4);
 
     light = CreateLight(LIGHT_DIRECTIONAL, { 5, 20, 5 }, { 0, 0, 0 }, YELLOW, shader);
 
@@ -52,7 +55,6 @@ Application::Application()
     sun = LoadModelFromMesh(sphere);
     Texture2D sunTexture = LoadTexture("assets/sun.png"); 
     sun.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = sunTexture;
-    
 
     Mesh grassMesh = GenMeshCube(1.0f, 1.0f, 1.0f);
     m_grass_model = LoadModelFromMesh(grassMesh);
