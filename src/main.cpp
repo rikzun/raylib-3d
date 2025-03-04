@@ -1,13 +1,15 @@
 #include "application.h"
-#include <Remotery.h>
+#include <Tracy.hpp>
+#include <tracy_profiler.h>
 
 int main()
 {
-    Remotery* rmt;
-    rmt_CreateGlobalInstance(&rmt);
+    TracyProfilerLaunch;
+    TracyNoop;
 
     Application app;
     app.loop();
 
+    TracyProfilerClose;
     return 0;
 }

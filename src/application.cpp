@@ -5,6 +5,8 @@
 #include <raymath.h>
 #include <random>
 #include <rlgl.h>
+#include <TracyC.h>
+#include <Tracy.hpp>
 
 #define MOUSE_SENSIVITY 0.1f
 #define BLOCKS 16
@@ -84,19 +86,34 @@ void Application::loop()
 {
     while (!WindowShouldClose())
     {
-        ProcessInput();
+        TracyCZoneNC(mlctx, "MainLoop", tracy::Color::DarkGray, 1);
 
+        TracyCZoneNC(pictx, "Process Input", tracy::Color::Aqua, 1);
+        processInput();
+        TracyCZoneEnd(pictx);
+
+        TracyCZoneNC(bdctx, "Begin Drawing", tracy::Color::Brown, 1);
         BeginDrawing();
+            TracyCZoneNC(bm3dctx, "Begin Mode 3D", tracy::Color::DarkMagenta, 1);
             BeginMode3D(m_camera);
-                Render3D();
+                TracyCZoneNC(r3dctx, "Render 3D", tracy::Color::Green, 1);
+                render3D();
+                TracyCZoneEnd(r3dctx);
             EndMode3D();
+            TracyCZoneEnd(bm3dctx);
 
-            Render2D();
+            TracyCZoneNC(r2dctx, "Render 2D", tracy::Color::Yellow, 1);
+            render2D();
+            TracyCZoneEnd(r2dctx);
         EndDrawing();
+        TracyCZoneEnd(bdctx);
+
+        TracyCZoneEnd(mlctx);
+        TracyCFrameMark;
     }
 }
 
-void Application::ProcessInput()
+void Application::processInput()
 {
     m_camera_speed = std::clamp(m_camera_speed + GetMouseWheelMove() / 100, 0.01f, 1.0f);
     if (IsMouseButtonReleased(MOUSE_MIDDLE_BUTTON)) m_camera_speed = 0.2f;
@@ -122,7 +139,7 @@ void Application::ProcessInput()
     if (IsKeyReleased(KEY_F2)) m_f2 = !m_f2;
 }
 
-void Application::Render3D()
+void Application::render3D()
 {
     light.position.x = (light.position.x || 0.1f) * (float)sin(PI * GetTime() / 6.0f) * 25.0f;
     light.position.z = (light.position.z || 0.1f) * (float)cos(PI * GetTime() / 6.0f) * 25.0f;
@@ -151,7 +168,7 @@ void Application::Render3D()
     if (m_f1) DrawGrid(100, 1.0f);
 }
 
-void Application::Render2D()
+void Application::render2D()
 {
     if (m_f1)
     {

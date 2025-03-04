@@ -26,7 +26,7 @@ class Application
         bool m_f1 = false;
         bool m_f2 = false;
 
-        void ProcessInput();
-        void Render3D();
-        void Render2D();
+        void processInput();
+        void render3D();
+        void render2D();
 };
