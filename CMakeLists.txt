@@ -14,19 +14,36 @@ message(NOTICE "🔷 load raylib")
 FetchContent_MakeAvailable(raylib)
 message(NOTICE "✅ raylib loaded")
 
-message(NOTICE "🔷 load tracy")
-FetchContent_MakeAvailable(tracy)
-message(NOTICE "✅ tracy loaded")
+message(NOTICE "🔷 load remotery")
+FetchContent_MakeAvailable(remotery)
+message(NOTICE "✅ remotery loaded")
 
-file(GLOB project_source_files "src/*.cpp")
+file(GLOB project_source_files "src/*.cpp" "src/*.c")
 add_executable(mrrr ${project_source_files})
 target_include_directories(mrrr PRIVATE ${CMAKE_SOURCE_DIR}/includes)
 
 target_link_libraries(mrrr raylib)
 
-target_compile_definitions(mrrr PRIVATE TRACY_ENABLE)
-target_include_directories(mrrr PRIVATE ${tracy_SOURCE_DIR}/public/tracy)
-target_sources(mrrr PRIVATE ${tracy_SOURCE_DIR}/public/TracyClient.cpp)
+target_sources(mrrr PRIVATE ${remotery_SOURCE_DIR}/lib/Remotery.c)
+target_include_directories(mrrr PRIVATE ${remotery_SOURCE_DIR}/lib)
+
+if(WIN32)
+    add_custom_command(
+        TARGET mrrr POST_BUILD
+        COMMAND start ${remotery_SOURCE_DIR}/vis/index.html
+    )
+elseif(UNIX)
+    add_custom_command(
+        TARGET mrrr POST_BUILD
+        COMMAND xdg-open ${remotery_SOURCE_DIR}/vis/index.html
+    )
+elseif(APPLE)
+    add_custom_command(
+        TARGET mrrr POST_BUILD
+        COMMAND open ${remotery_SOURCE_DIR}/vis/index.html
+    )
+endif()
+
 
 add_custom_command(
     TARGET mrrr POST_BUILD
