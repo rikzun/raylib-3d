@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.29)
+﻿cmake_minimum_required(VERSION 3.28)
 if(WIN32)
     execute_process(COMMAND chcp 65001)
 endif()

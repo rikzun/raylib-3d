@@ -9,7 +9,7 @@
 #include <Tracy.hpp>
 
 #define MOUSE_SENSIVITY 0.1f
-#define BLOCKS 16
+#define BLOCKS 32
 
 Shader shader;
 Light light;
