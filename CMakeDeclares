@@ -1,13 +1,19 @@
 include(FetchContent)
 
 FetchContent_Declare(
-    raylib
-    GIT_REPOSITORY https://github.com/raysan5/raylib.git
-    GIT_TAG 5.5
+    SDL
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+    GIT_TAG release-3.2.8
 )
 
 FetchContent_Declare(
-    tracy
-    GIT_REPOSITORY https://github.com/wolfpld/tracy.git
-    GIT_TAG v0.11.1
+    glm
+    GIT_REPOSITORY https://github.com/g-truc/glm.git
+    GIT_TAG 1.0.1
 )
+
+# FetchContent_Declare(
+#     tracy
+#     GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+#     GIT_TAG v0.11.1
+# )

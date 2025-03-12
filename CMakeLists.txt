@@ -1,50 +1,65 @@
 ﻿cmake_minimum_required(VERSION 3.29)
-if(WIN32)
-    execute_process(COMMAND chcp 65001)
-endif()
 include(CMakeDeclares)
 
-project(mrrr)
+project(vmm VERSION 0.0.1)
 
-set(CMAKE_C_STANDARD 17)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-message(NOTICE "🔷 load raylib")
-FetchContent_MakeAvailable(raylib)
-message(NOTICE "✅ raylib loaded")
+message(NOTICE "🔷 load SDL")
+FetchContent_MakeAvailable(SDL)
+message(NOTICE "✅ SDL loaded")
 
-message(NOTICE "🔷 load tracy")
-FetchContent_MakeAvailable(tracy)
-message(NOTICE "✅ tracy loaded")
+message(NOTICE "🔷 load glm")
+FetchContent_MakeAvailable(glm)
+message(NOTICE "✅ glm loaded")
 
-file(GLOB project_source_files "src/*.cpp")
-add_executable(mrrr ${project_source_files})
-target_include_directories(mrrr PRIVATE ${CMAKE_SOURCE_DIR}/includes)
+# message(NOTICE "🔷 load tracy")
+# FetchContent_MakeAvailable(tracy)
+# message(NOTICE "✅ tracy loaded")
 
-target_link_libraries(mrrr raylib)
+file(GLOB_RECURSE PROJECT_SOURCE_FILES "src/*.cpp")
+file(GLOB_RECURSE PROJECT_HEADER_DIRS "src/*.h")
 
-target_compile_definitions(mrrr PRIVATE TRACY_ENABLE)
-target_compile_definitions(mrrr PRIVATE TRACY_ONLY_LOCALHOST)
-target_include_directories(mrrr PRIVATE ${tracy_SOURCE_DIR}/public/tracy)
-target_sources(mrrr PRIVATE ${tracy_SOURCE_DIR}/public/TracyClient.cpp)
+set(INCLUDE_DIRS "")
+foreach(HEADER ${HEADER_PATHS})
+    get_filename_component(DIR ${HEADER} DIRECTORY)
+    list(APPEND INCLUDE_DIRS ${DIR})
+endforeach()
+list(REMOVE_DUPLICATES INCLUDE_DIRS)
 
-add_custom_command(
-    TARGET mrrr POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:mrrr>/assets
-)
+add_executable(vmm ${PROJECT_SOURCE_FILES})
+target_include_directories(vmm PRIVATE ${INCLUDE_DIRS})
+
+find_package(Vulkan REQUIRED)
+target_link_libraries(vmm PRIVATE SDL3::SDL3 Vulkan::Vulkan glm)
+
+# target_compile_definitions(vmm PRIVATE TRACY_ENABLE)
+# target_compile_definitions(vmm PRIVATE TRACY_ONLY_LOCALHOST)
+# target_include_directories(vmm PRIVATE ${tracy_SOURCE_DIR}/public/tracy)
+# target_sources(vmm PRIVATE ${tracy_SOURCE_DIR}/public/TracyClient.cpp)
+
+# add_custom_command(
+#     TARGET vmm POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy_directory
+#     ${CMAKE_SOURCE_DIR}/shaders $<TARGET_FILE_DIR:vmm>/shaders
+# )
+
+target_compile_definitions(vmm PRIVATE PROJECT_NAME="${CMAKE_PROJECT_NAME}")
+target_compile_definitions(vmm PRIVATE PROJECT_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
+target_compile_definitions(vmm PRIVATE PROJECT_VERSION_MINOR=${PROJECT_VERSION_MINOR})
+target_compile_definitions(vmm PRIVATE PROJECT_VERSION_PATCH=${PROJECT_VERSION_PATCH})
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(mrrr PRIVATE DEBUG_BUILD)
+    target_compile_definitions(vmm PRIVATE DEBUG_BUILD)
 else()
-    target_compile_definitions(mrrr PRIVATE RELEASE_BUILD)
+    target_compile_definitions(vmm PRIVATE RELEASE_BUILD)
 endif()
 
 if(WIN32)
-    target_compile_definitions(mrrr PRIVATE OS_WINDOWS)
+    target_compile_definitions(vmm PRIVATE WINDOWS_BUILD)
 elseif(APPLE)
-    target_compile_definitions(mrrr PRIVATE OS_MACOS)
+    target_compile_definitions(vmm PRIVATE MACOS_BUILD)
 elseif(UNIX)
-    target_compile_definitions(mrrr PRIVATE OS_LINUX)
+    target_compile_definitions(vmm PRIVATE LINUX_BUILD)
 endif()
