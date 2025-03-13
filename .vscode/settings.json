@@ -8,7 +8,6 @@
         "testPreset": { "statusBarVisibility": "hidden" },
         "launchTarget": { "statusBarVisibility": "hidden" },
         "debug": { "statusBarVisibility": "hidden" },
-        "workflow": { "statusBarVisibility": "hidden" },
         "workflowPreset": { "statusBarVisibility": "hidden" },
         "packagePreset": { "statusBarVisibility": "hidden" },
         "cpack": { "statusBarVisibility": "hidden" }

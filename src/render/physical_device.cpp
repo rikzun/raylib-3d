@@ -1,26 +1,34 @@
 #include "render.h"
+#include <iostream>
+#include <sstream>
+#include <iomanip>
 
 void Render::selectPhysicalDevice() {
-    #ifdef DEBUG_BUILD
-        print("Select Physical Device");
-    #endif
+    m_Logger.info("Select Physical Device");
 
     vk::ResultValue<std::vector<vk::PhysicalDevice>> physicalDevices = m_Instance.enumeratePhysicalDevices();
-    VK_FAILED_ERROR(physicalDevices.result, "Physical devices getting caused an error");
+    VK_FAILED_ERROR(physicalDevices.result, "Physical Devices getting caused an error");
 
     std::vector requiredExtensions {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        // VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
         VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
     };
+
+    std::optional<vk::PhysicalDevice> localPhysicalDevice;
 
     for (auto& physicalDevice : physicalDevices.value) {
         vk::PhysicalDeviceProperties properties = physicalDevice.getProperties();
         vk::ResultValue<std::vector<vk::ExtensionProperties>> supportedExtensions = physicalDevice.enumerateDeviceExtensionProperties();
-        VK_FAILED_ERROR(supportedExtensions.result, "Physical device extensions getting caused an error");
+        VK_FAILED_ERROR(supportedExtensions.result, "Physical Device extensions getting caused an error");
 
-        #ifdef DEBUG_BUILD
-            print("Check required extensions for " << properties.deviceName);
-        #endif
+        m_Logger.info(
+            std::format(
+                "Check required extensions for {} ({})",
+                properties.deviceName.data(),
+                properties.deviceID
+            )
+        );
 
         uint32_t requiredExtensionsSupportedCount = 0;
         for (auto& requiredExtension : requiredExtensions) {
@@ -34,31 +42,23 @@ void Render::selectPhysicalDevice() {
             }
 
             if (supported) {
-                #ifdef DEBUG_BUILD
-                    printi(requiredExtension << " (SUPPORTED)");
-                #endif
-
+                m_Logger.info(std::format("  (SUPPORTED) {}", requiredExtension));
                 requiredExtensionsSupportedCount++;
                 continue;
             }
-            
-            #ifdef DEBUG_BUILD
-                else {
-                    printi(requiredExtension << " (NOT SUPPORTED)");
-                }
-            #endif
+
+            m_Logger.info(std::format("  (NOT SUPPORTED) {}", requiredExtension));
         }
 
-        if (requiredExtensionsSupportedCount == requiredExtensions.size()) {
-            #ifdef DEBUG_BUILD
-                print("Selected " << properties.deviceName);
-                printi("Type: " << vk::to_string(properties.deviceType));
-                printi("ID: " << properties.deviceID);
-            #endif
-            
-            m_PhysicalDevice = physicalDevice;
-            return;
+        if (!localPhysicalDevice.has_value() && requiredExtensionsSupportedCount == requiredExtensions.size()) {
+            m_Logger.info("  DEVICE SELECTED");
+            localPhysicalDevice.emplace(physicalDevice);
         }
+    }
+
+    if (localPhysicalDevice.has_value()) {
+        m_PhysicalDevice = localPhysicalDevice.value();
+        return;
     }
 
     throw std::runtime_error("Suitable physical devise was not found");

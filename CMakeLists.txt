@@ -32,7 +32,7 @@ add_executable(vmm ${PROJECT_SOURCE_FILES})
 target_include_directories(vmm PRIVATE ${INCLUDE_DIRS})
 
 find_package(Vulkan REQUIRED)
-target_link_libraries(vmm PRIVATE SDL3::SDL3 Vulkan::Vulkan glm)
+target_link_libraries(vmm PRIVATE SDL3::SDL3-static Vulkan::Vulkan glm)
 
 # target_compile_definitions(vmm PRIVATE TRACY_ENABLE)
 # target_compile_definitions(vmm PRIVATE TRACY_ONLY_LOCALHOST)
@@ -44,6 +44,10 @@ target_link_libraries(vmm PRIVATE SDL3::SDL3 Vulkan::Vulkan glm)
 #     COMMAND ${CMAKE_COMMAND} -E copy_directory
 #     ${CMAKE_SOURCE_DIR}/shaders $<TARGET_FILE_DIR:vmm>/shaders
 # )
+
+if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND WIN32)
+    set_target_properties(vmm PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+endif()
 
 target_compile_definitions(vmm PRIVATE PROJECT_NAME="${CMAKE_PROJECT_NAME}")
 target_compile_definitions(vmm PRIVATE PROJECT_VERSION_MAJOR=${PROJECT_VERSION_MAJOR})
