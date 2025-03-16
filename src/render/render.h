@@ -1,22 +1,21 @@
 #pragma once
 #define VULKAN_HPP_NO_EXCEPTIONS
+#define VULKAN_HPP_NO_NODISCARD_WARNINGS
 #include <vulkan/vulkan.hpp>
 #include <SDL3/SDL_vulkan.h>
 #include <optional>
+#include <unordered_set>
+#include "render_utils.h"
+#include <sstream>
+#include <iomanip>
+#include <sstream>
 #include "../logger.h"
-
-#define VK_SUCCESS(result) result == vk::Result::eSuccess
-#define VK_FAILED_ERROR(result, message)\
-if (result != vk::Result::eSuccess) {\
-    throw std::runtime_error(message);\
-}
-
-#define COUNT(vector) static_cast<uint32_t>(vector.size())
 
 class Render {
     public:
         Render(SDL_Window* window, Logger& logger);
         ~Render();
+
         void init();
         void draw();
 
@@ -33,7 +32,8 @@ class Render {
         vk::Device m_LogicalDevice;
         vk::SwapchainKHR m_Swapchain;
         vk::CommandPool m_CommandPool;
-        vk::CommandBuffer m_CommandBuffer;
+        std::vector<vk::CommandBuffer> m_CommandBuffers;
+        vk::PipelineLayout m_PipelineLayout;
         vk::Pipeline m_Pipeline;
 
         std::vector<vk::Image> m_SwapchainImages;
@@ -52,12 +52,16 @@ class Render {
         void selectQueueFamilyIndexes();
         void createLogicalDevice();
         void createSwapchain();
-        void fetchSwapcianResources();
+        void selectSwapcianResources();
         void createShaderModules();
         void createCommandPool();
-        void createCommandBuffer();
+        void createCommandBuffers();
+        
         void createPipeline();
-        void recordCommandBuffer();
+        void recordCommandBuffer(int index);
 
-        void checkDebugLayerSupport(std::vector<vk::LayerProperties>& instanceSupportedExtensions);
+        void createSyncObjects();
+        std::vector<vk::Semaphore> m_ImageAvailableSemaphores;
+        std::vector<vk::Semaphore> m_RenderFinishedSemaphores;
+        std::vector<vk::Fence> m_InFlightFences;
 };

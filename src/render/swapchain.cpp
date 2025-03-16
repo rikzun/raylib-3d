@@ -1,34 +1,40 @@
 #include "render.h"
 
+vk::Extent2D getWindowSize(SDL_Window* window) {
+    int width, height;
+    SDL_GetWindowSizeInPixels(window, &width, &height);
+
+    return vk::Extent2D {
+        static_cast<uint32_t>(width),
+        static_cast<uint32_t>(height)
+    };
+}
+
 void Render::createSwapchain() {
     m_Logger.info("Creating Swapchain");
-    vk::ResultValue<vk::SurfaceCapabilitiesKHR> surfaceCapabilities = m_PhysicalDevice.getSurfaceCapabilitiesKHR(m_Surface);
-    VK_FAILED_ERROR(surfaceCapabilities.result, "Physical device capabilities getting caused an error");
 
-    uint32_t minImageCount = surfaceCapabilities.value.minImageCount + 1;
-    if (surfaceCapabilities.value.maxImageCount > 0 && minImageCount > surfaceCapabilities.value.maxImageCount) {
-        minImageCount = surfaceCapabilities.value.maxImageCount;
+    vk::SurfaceCapabilitiesKHR surfaceCapabilities = VK_ERROR_CHECK(
+        m_PhysicalDevice.getSurfaceCapabilitiesKHR(m_Surface),
+        "Physical device capabilities getting caused an error"
+    );
+
+    uint32_t minImageCount = surfaceCapabilities.minImageCount + 1;
+    if (surfaceCapabilities.maxImageCount > 0 && minImageCount > surfaceCapabilities.maxImageCount) {
+        minImageCount = surfaceCapabilities.maxImageCount;
     }
 
-    vk::Extent2D extent = surfaceCapabilities.value.currentExtent;
-    if (extent.width == UINT32_MAX) {
-        int width, height;
-        SDL_GetWindowSizeInPixels(m_Window, &width, &height);
+    vk::Extent2D extent = surfaceCapabilities.currentExtent;
+    if (extent.height == UINT32_MAX || extent.width == UINT32_MAX) {
+        vk::Extent2D window = getWindowSize(m_Window);
 
         extent.width = std::min(
-            surfaceCapabilities.value.maxImageExtent.width,
-            std::max(
-                surfaceCapabilities.value.minImageExtent.width,
-                static_cast<uint32_t>(width)
-            )
+            surfaceCapabilities.maxImageExtent.width,
+            std::max(surfaceCapabilities.minImageExtent.width, window.width)
         );
 
         extent.height = std::min(
-            surfaceCapabilities.value.maxImageExtent.height,
-            std::max(
-                surfaceCapabilities.value.minImageExtent.height,
-                static_cast<uint32_t>(height)
-            )
+            surfaceCapabilities.maxImageExtent.height,
+            std::max(surfaceCapabilities.minImageExtent.height, window.height)
         );
     }
 
@@ -40,7 +46,7 @@ void Render::createSwapchain() {
     swapchainCreateInfo.imageExtent = extent;
     swapchainCreateInfo.imageArrayLayers = 1;
     swapchainCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
-    swapchainCreateInfo.preTransform = surfaceCapabilities.value.currentTransform;
+    swapchainCreateInfo.preTransform = surfaceCapabilities.currentTransform;
     swapchainCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
     swapchainCreateInfo.presentMode = vk::PresentModeKHR::eMailbox;
     swapchainCreateInfo.clipped = VK_TRUE;
@@ -61,9 +67,11 @@ void Render::createSwapchain() {
         swapchainCreateInfo.pQueueFamilyIndices = &m_QueueGraphicFamilyIndex;
     }
 
-    vk::ResultValue<vk::SwapchainKHR> swapchainResult = m_LogicalDevice.createSwapchainKHR(swapchainCreateInfo);
-    VK_FAILED_ERROR(swapchainResult.result, "Swapchain creating caused an error");
-    m_Logger.info("Swapchain was created successfully");
+    vk::SwapchainKHR swapchainResult = VK_ERROR_CHECK(
+        m_LogicalDevice.createSwapchainKHR(swapchainCreateInfo),
+        "Swapchain creating caused an error"
+    );
 
-    m_Swapchain = swapchainResult.value;
+    m_Logger.info("Swapchain was created successfully");
+    m_Swapchain = swapchainResult;
 }

@@ -1,7 +1,4 @@
 #include "render.h"
-#include <iostream>
-#include <sstream>
-#include <fstream>
 
 std::vector<char> loadFile(const char* filePath) {
     std::ifstream file = std::ifstream(filePath, std::ios::binary | std::ios::ate);
@@ -37,32 +34,16 @@ void Render::createShaderModules() {
 	fragmentInfo.codeSize = fragmentContent.size();
 	fragmentInfo.pCode = reinterpret_cast<uint32_t*>(fragmentContent.data());
 
-	vk::ResultValue<vk::ShaderModule> vertexShader = m_LogicalDevice.createShaderModule(vertexInfo);
-	vk::ResultValue<vk::ShaderModule> fragmentShader = m_LogicalDevice.createShaderModule(fragmentInfo);
+	vk::ShaderModule vertexShader = VK_ERROR_CHECK(
+		m_LogicalDevice.createShaderModule(vertexInfo),
+		"Vertex Shader Module creating caused an error"
+	);
 
-	VK_FAILED_ERROR(vertexShader.result, "Vertex Shader Module creating caused an error");
-	VK_FAILED_ERROR(fragmentShader.result, "Fragment Shader Module creating caused an error");
+	vk::ShaderModule fragmentShader = VK_ERROR_CHECK(
+		m_LogicalDevice.createShaderModule(fragmentInfo),
+		"Fragment Shader Module creating caused an error"
+	);
 
 	m_Logger.info("Shaders Modules was created successfully");
-	m_Shaders = { vertexShader.value, fragmentShader.value };
-
-    // vk::ShaderCreateInfoEXT vertexInfo {};
-	// vertexInfo.flags = vk::ShaderCreateFlagBitsEXT::eLinkStage;
-	// vertexInfo.stage = vk::ShaderStageFlagBits::eVertex;
-	// vertexInfo.codeType = vk::ShaderCodeTypeEXT::eSpirv;
-	// vertexInfo.nextStage = vk::ShaderStageFlagBits::eFragment;
-	// vertexInfo.codeSize = vertexContent.size();
-	// vertexInfo.pCode = vertexContent.data();
-	// vertexInfo.pName = "main";
-
-	// vk::ShaderCreateInfoEXT fragmentInfo {};
-	// fragmentInfo.flags = vk::ShaderCreateFlagBitsEXT::eLinkStage;
-	// fragmentInfo.stage = vk::ShaderStageFlagBits::eFragment;
-	// fragmentInfo.codeType = vk::ShaderCodeTypeEXT::eSpirv;
-	// fragmentInfo.codeSize = fragmentContent.size();
-	// fragmentInfo.pCode = fragmentContent.data();
-	// fragmentInfo.pName = "main";
-
-    // vk::ResultValue<std::vector<vk::ShaderEXT>> shaders = m_LogicalDevice.createShadersEXT({vertexInfo, fragmentInfo}, nullptr, m_Dispatcher);
-    // VK_FAILED_ERROR(shaders.result, "aboba");
+	m_Shaders = { vertexShader, fragmentShader };
 }

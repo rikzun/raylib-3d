@@ -1,26 +1,32 @@
 #include "render.h"
-#include <iostream>
-#include <sstream>
-#include <iomanip>
 
 void Render::selectPhysicalDevice() {
     m_Logger.info("Select Physical Device");
 
-    vk::ResultValue<std::vector<vk::PhysicalDevice>> physicalDevices = m_Instance.enumeratePhysicalDevices();
-    VK_FAILED_ERROR(physicalDevices.result, "Physical Devices getting caused an error");
+    std::vector<vk::PhysicalDevice> physicalDevices = VK_ERROR_AND_EMPRY_CHECK(
+        m_Instance.enumeratePhysicalDevices(),
+        "Physical Devices enumeration caused an error",
+        "Physical Devices enumeration returned no results"
+    );
 
-    std::vector requiredExtensions {
+    std::unordered_set<std::string_view> requiredExtensions {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        // VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
         VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME
     };
 
-    std::optional<vk::PhysicalDevice> localPhysicalDevice;
+    vk::PhysicalDevice localPhysicalDevice;
 
-    for (auto& physicalDevice : physicalDevices.value) {
+    for (vk::PhysicalDevice& physicalDevice : physicalDevices) {
         vk::PhysicalDeviceProperties properties = physicalDevice.getProperties();
-        vk::ResultValue<std::vector<vk::ExtensionProperties>> supportedExtensions = physicalDevice.enumerateDeviceExtensionProperties();
-        VK_FAILED_ERROR(supportedExtensions.result, "Physical Device extensions getting caused an error");
+
+        std::vector<vk::ExtensionProperties> supportedExtensions = VK_ERROR_AND_EMPRY_CHECK(
+            physicalDevice.enumerateDeviceExtensionProperties(),
+            "Physical Device extensions enumeration caused an error",
+            "Physical Device extensions enumeration returned no results"
+        );
+
+        std::unordered_set<std::string_view> availableExtensions;
+        INSERT_ELEMENTS_M(availableExtensions, supportedExtensions, extensionName);
 
         m_Logger.info(
             std::format(
@@ -30,34 +36,24 @@ void Render::selectPhysicalDevice() {
             )
         );
 
-        uint32_t requiredExtensionsSupportedCount = 0;
-        for (auto& requiredExtension : requiredExtensions) {
-            bool supported = false;
-
-            for (auto& supportedExtension : supportedExtensions.value) {
-                if (strcmp(requiredExtension, supportedExtension.extensionName) == 0) {
-                    supported = true;
-                    break;
-                }
+        bool requiredExtensionsSupported = true;
+        for (std::string_view requiredExtension : requiredExtensions) {
+            if (availableExtensions.contains(requiredExtension)) {
+                m_Logger.info(std::format("  + {}", requiredExtension));
+            } else {
+                m_Logger.info(std::format("  - {}", requiredExtension));
+                requiredExtensionsSupported = false;
             }
-
-            if (supported) {
-                m_Logger.info(std::format("  (SUPPORTED) {}", requiredExtension));
-                requiredExtensionsSupportedCount++;
-                continue;
-            }
-
-            m_Logger.info(std::format("  (NOT SUPPORTED) {}", requiredExtension));
         }
 
-        if (!localPhysicalDevice.has_value() && requiredExtensionsSupportedCount == requiredExtensions.size()) {
+        if (requiredExtensionsSupported && !localPhysicalDevice) {
             m_Logger.info("  DEVICE SELECTED");
-            localPhysicalDevice.emplace(physicalDevice);
+            localPhysicalDevice = physicalDevice;
         }
     }
 
-    if (localPhysicalDevice.has_value()) {
-        m_PhysicalDevice = localPhysicalDevice.value();
+    if (localPhysicalDevice) {
+        m_PhysicalDevice = localPhysicalDevice;
         return;
     }
 

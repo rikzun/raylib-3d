@@ -17,20 +17,15 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 	return VK_FALSE;
 }
 
-void Render::checkDebugLayerSupport(std::vector<vk::LayerProperties>& instanceSupportedLayers) {
-	for (auto& layer : instanceSupportedLayers) {
-        if (strcmp(layer.layerName, "VK_LAYER_KHRONOS_validation") != 0) continue;
-        m_DebugLayer = true;
-        break;
-    }
-}
-
 void Render::createDebugMessenger() {
     if (!m_DebugLayer) return;
+
 	m_Logger.info("Creating Debug Messenger");
-    m_Dispatcher = vk::detail::DispatchLoaderDynamic(m_Instance, vkGetInstanceProcAddr);
+	m_Dispatcher.init(m_Instance, vkGetInstanceProcAddr);
 
     vk::DebugUtilsMessengerCreateInfoEXT createInfo {};
+	createInfo.pfnUserCallback = debugCallback;
+	createInfo.pUserData = &m_Logger;
 	createInfo.messageSeverity =
 		vk::DebugUtilsMessageSeverityFlagBitsEXT::eError |
 		vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
@@ -39,13 +34,12 @@ void Render::createDebugMessenger() {
 		vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
 		vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
 		vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation;
-    createInfo.flags = vk::DebugUtilsMessengerCreateFlagsEXT();
-	createInfo.pfnUserCallback = debugCallback;
-	createInfo.pUserData = &m_Logger;
 
-    vk::ResultValue<vk::DebugUtilsMessengerEXT> debugMessenger = m_Instance.createDebugUtilsMessengerEXT(createInfo, nullptr, m_Dispatcher);
-    VK_FAILED_ERROR(debugMessenger.result, "Debug Messenger creating caused an error")
+	vk::DebugUtilsMessengerEXT debugMessenger = VK_ERROR_CHECK(
+		m_Instance.createDebugUtilsMessengerEXT(createInfo, nullptr, m_Dispatcher),
+		"Debug Messenger creating caused an error"
+	);
 
 	m_Logger.info("Debug Messenger was created successfully");
-    m_DebugMessenger = debugMessenger.value;
+    m_DebugMessenger = debugMessenger;
 }

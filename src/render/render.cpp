@@ -19,32 +19,52 @@ void Render::init() {
         Render::selectQueueFamilyIndexes();
         Render::createLogicalDevice();
         Render::createSwapchain();
-        Render::fetchSwapcianResources();
+        Render::selectSwapcianResources();
         Render::createShaderModules();
         Render::createCommandPool();
-        Render::createCommandBuffer();
+        Render::createCommandBuffers();
+        
+        Render::createSyncObjects();
         Render::createPipeline();
-        Render::recordCommandBuffer();
     } catch(const std::runtime_error& error) {
         m_Logger.error(error.what());
     }
 }
 
 void Render::draw() {
-    uint32_t imageIndice { 0 };
+    for (uint32_t i = 0; i < m_CommandBuffers.size(); i++) {
+        m_LogicalDevice.waitForFences(1, &m_InFlightFences[i], VK_TRUE, UINT64_MAX);
 
-    vk::SubmitInfo submitInfo {};
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &m_CommandBuffer;
+        uint32_t imageIndex = m_LogicalDevice.acquireNextImageKHR(m_Swapchain, UINT64_MAX, m_ImageAvailableSemaphores[i], VK_NULL_HANDLE).value;
 
-    m_GraphicQueue.submit(submitInfo, nullptr);
-    m_GraphicQueue.waitIdle();
+        m_LogicalDevice.resetFences(1, &m_InFlightFences[i]);
 
-    vk::PresentInfoKHR presentInfo {};
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = &m_Swapchain;
-    presentInfo.pImageIndices = &imageIndice;
+        Render::recordCommandBuffer(imageIndex);
 
-    m_GraphicQueue.presentKHR(presentInfo);
-    m_GraphicQueue.waitIdle();
+        vk::Semaphore waitSemaphores[] = { m_ImageAvailableSemaphores[i] };
+        vk::Semaphore signalSemaphores[] = { m_RenderFinishedSemaphores[i] };
+        vk::PipelineStageFlags waitStages[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
+
+        vk::SubmitInfo submitInfo {};
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &m_CommandBuffers[imageIndex];
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+
+        m_GraphicQueue.submit(submitInfo, m_InFlightFences[imageIndex]);
+        m_GraphicQueue.waitIdle();
+
+        vk::PresentInfoKHR presentInfo {};
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = &m_Swapchain;
+        presentInfo.pImageIndices = &imageIndex;
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = signalSemaphores;
+
+        m_PresentQueue.presentKHR(presentInfo);
+        m_PresentQueue.waitIdle();
+    }
 }

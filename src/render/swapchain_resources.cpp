@@ -1,16 +1,20 @@
 #include "render.h"
 
-void Render::fetchSwapcianResources() {
-    m_Logger.info("Fetching Swapchain Resources");
-    m_Logger.info("  Fetching Swapchain Images");
+void Render::selectSwapcianResources() {
+    m_Logger.info("Selecting Swapchain Resources");
+    m_Logger.info("  Selecting Swapchain Images");
 
-    vk::ResultValue<std::vector<vk::Image>> swapchainImages = m_LogicalDevice.getSwapchainImagesKHR(m_Swapchain);
-    VK_FAILED_ERROR(swapchainImages.result, "Swapchain Images fetching caused an error");
+    std::vector<vk::Image> swapchainImages = VK_ERROR_AND_EMPRY_CHECK(
+        m_LogicalDevice.getSwapchainImagesKHR(m_Swapchain),
+        "Swapchain Images selecting caused an error",
+        "Swapchain Images selecting returned no results"
+    );
 
     std::vector<vk::ImageView> swapchainImagesViews {};
-    m_Logger.info("  Creating Swapchain ImagesViews");
+    swapchainImagesViews.reserve(swapchainImages.size());
 
-    for (vk::Image& image : swapchainImages.value) {
+    m_Logger.info("  Creating Swapchain ImagesViews");
+    for (vk::Image& image : swapchainImages) {
         vk::ImageViewCreateInfo viewInfo {};
         viewInfo.image = image;
         viewInfo.viewType = vk::ImageViewType::e2D;
@@ -22,19 +26,16 @@ void Render::fetchSwapcianResources() {
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount = 1;
 
-        vk::ResultValue<vk::ImageView> imageView = m_LogicalDevice.createImageView(viewInfo);
-        VK_FAILED_ERROR(imageView.result, "Swapchain ImagesViews creating caused an error");
+        vk::ImageView imageView = VK_ERROR_CHECK(
+            m_LogicalDevice.createImageView(viewInfo),
+            "Swapchain ImagesViews creating caused an error"
+        );
 
-        swapchainImagesViews.push_back(imageView.value);
+        swapchainImagesViews.push_back(imageView);
     }
 
-    if (!swapchainImagesViews.empty()) {
-        m_SwapchainImages = swapchainImages.value;
-        m_SwapchainImagesViews = swapchainImagesViews;
+    m_SwapchainImages = swapchainImages;
+    m_SwapchainImagesViews = swapchainImagesViews;
 
-        m_Logger.info("Swapchain Resources was feched successfully");
-        return;
-    }
-
-    throw std::runtime_error("Suitable physical devise was not found");
+    m_Logger.info("Swapchain Resources selected successfully");
 }

@@ -3,98 +3,104 @@
 void Render::createInstance() {
     m_Logger.info("Creating Instance");
 
-    vk::ResultValue<uint32_t> version = vk::enumerateInstanceVersion();
-    VK_FAILED_ERROR(version.result, "Version getting caused an error");
+    uint32_t version = VK_ERROR_CHECK(
+        vk::enumerateInstanceVersion(),
+        "Version enumeration caused an error"
+    );
+
+    vk::ApplicationInfo appInfo {};
+    appInfo.pApplicationName = PROJECT_NAME;
+    appInfo.applicationVersion = VK_MAKE_VERSION(PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR, PROJECT_VERSION_PATCH);
+    appInfo.apiVersion = VK_MAKE_API_VERSION(0, PROJECT_VK_VERSION_MAJOR, PROJECT_VK_VERSION_MINOR, PROJECT_VK_VERSION_PATCH);
 
     m_Logger.info(
         std::format(
-            "Vulkan {}.{}.{}",
-            VK_API_VERSION_MAJOR(version.value),
-            VK_API_VERSION_MINOR(version.value),
-            VK_API_VERSION_PATCH(version.value)
+            "Vulkan sys: {}.{}.{} app: {}.{}.{}",
+            VK_API_VERSION_MAJOR(version),
+            VK_API_VERSION_MINOR(version),
+            VK_API_VERSION_PATCH(version),
+            PROJECT_VK_VERSION_MAJOR,
+            PROJECT_VK_VERSION_MINOR,
+            PROJECT_VK_VERSION_PATCH
         )
     );
 
-    vk::ResultValue<std::vector<vk::ExtensionProperties>> instanceSupportExtensions = vk::enumerateInstanceExtensionProperties();
-    VK_FAILED_ERROR(instanceSupportExtensions.result, "Instance supported extensions getting caused an error");
+    std::vector<vk::LayerProperties> instanceSupportedLayers = VK_ERROR_AND_EMPRY_CHECK(
+        vk::enumerateInstanceLayerProperties(),
+        "Instance support layers enumeration caused an error",
+        "Instance support layers enumeration returned no results"
+    );
 
-    std::vector<const char*> enableExtensions {};
-    uint32_t sdlRequiredExtensionsCount = 0;
-    const char* const* sdlRequiredExtensions = SDL_Vulkan_GetInstanceExtensions(&sdlRequiredExtensionsCount);
+    std::vector<vk::ExtensionProperties> instanceSupportExtensions = VK_ERROR_AND_EMPRY_CHECK(
+        vk::enumerateInstanceExtensionProperties(),
+        "Instance support extensions enumeration caused an error",
+        "Instance support extensions enumeration returned no results"
+    );
 
-    for (uint32_t i = 0; i < sdlRequiredExtensionsCount; i++) {
-        const char* sdlRequiredExtension = sdlRequiredExtensions[i];
-        enableExtensions.push_back(sdlRequiredExtension);
-    }
+    std::unordered_set<std::string_view> supportedLayers;
+    INSERT_ELEMENTS_M(supportedLayers, instanceSupportedLayers, layerName);
 
-    vk::ResultValue<std::vector<vk::LayerProperties>> instanceSupportedLayers = vk::enumerateInstanceLayerProperties();
-    VK_FAILED_ERROR(instanceSupportedLayers.result, "Instance support layers getting caused an error");
+    std::unordered_set<std::string_view> supportedExtensions;
+    INSERT_ELEMENTS_M(supportedExtensions, instanceSupportExtensions, extensionName);
 
-    std::vector<const char*> enableLayers {};
-    checkDebugLayerSupport(instanceSupportedLayers.value);
+    std::vector<const char*> requiredLayers {};
+    std::vector<const char*> requiredExtensions {};
+
+    m_DebugLayer = supportedLayers.contains("VK_LAYER_KHRONOS_validation");
 
     if (m_DebugLayer) {
         m_Logger.info("Debug layer supported");
-        enableExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        enableLayers.push_back("VK_LAYER_KHRONOS_validation");
+        requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        requiredLayers.push_back("VK_LAYER_KHRONOS_validation");
     } else {
         m_Logger.info("Debug layer not supported");
     }
 
-    vk::ApplicationInfo appInfo {};
-	appInfo.pApplicationName = PROJECT_NAME;
-	appInfo.applicationVersion = VK_MAKE_VERSION(PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR, PROJECT_VERSION_PATCH);
-	appInfo.apiVersion = VK_MAKE_API_VERSION(0, 1, 4, 304);
-
-    vk::InstanceCreateInfo createInfo {};
-    createInfo.pApplicationInfo = &appInfo;
-    createInfo.ppEnabledExtensionNames = enableExtensions.data();
-    createInfo.enabledExtensionCount = COUNT(enableExtensions);
-    createInfo.ppEnabledLayerNames = enableLayers.data();
-    createInfo.enabledLayerCount = COUNT(enableLayers);
-
-    m_Logger.info("Check required extensions support");
-
-    for (uint32_t i = 0; i < createInfo.enabledExtensionCount; i++) {
-        const char* requiredExtension = createInfo.ppEnabledExtensionNames[i];
-        bool supported = false;
-
-        for (auto& ext : instanceSupportExtensions.value) {
-            if (strcmp(ext.extensionName, requiredExtension) != 0) continue;
-            supported = true;
-            break;
-        }
-
-        if (supported) {
-            m_Logger.info(std::format("  (SUPPORTED) {}", requiredExtension));
-        } else {
-            m_Logger.info(std::format("  (NOT SUPPORTED) {}", requiredExtension));
-            return;
-        }
+    uint32_t sdlRequiredExtensionsCount = 0;
+    const char* const* sdlRequiredExtensions = SDL_Vulkan_GetInstanceExtensions(&sdlRequiredExtensionsCount);
+    for (uint32_t i = 0; i < sdlRequiredExtensionsCount; i++) {
+        requiredExtensions.push_back(sdlRequiredExtensions[i]);
     }
 
     m_Logger.info("Check required layers support");
+    bool requiredLayersSupported = true;
 
-    for (uint32_t i = 0; i < createInfo.enabledLayerCount; i++) {
-        const char* requiredLayer = createInfo.ppEnabledLayerNames[i];
-        bool supported = false;
-
-        for (auto& layer : instanceSupportedLayers.value) {
-            if (strcmp(layer.layerName, requiredLayer) != 0) continue;
-            supported = true;
-            break;
-        }
-
-        if (supported) {
-            m_Logger.info(std::format("  (SUPPORTED) {}", requiredLayer));
+    for (std::string_view requiredLayer : requiredLayers) {
+        if (supportedLayers.contains(requiredLayer)) {
+            m_Logger.info(std::format("  + {}", requiredLayer));
         } else {
-            m_Logger.info(std::format("  (NOT SUPPORTED) {}", requiredLayer));
-            return;
+            m_Logger.info(std::format("  - {}", requiredLayer));
+            requiredLayersSupported = false;
         }
     }
 
-    vk::ResultValue<vk::Instance> instance = vk::createInstance(createInfo);
-    VK_FAILED_ERROR(instance.result, "Instance creating getting caused an error")
+    m_Logger.info("Check required extensions support");
+    bool requiredExtensionsSupported = true;
+
+    for (std::string_view requiredExtension : requiredExtensions) {
+        if (supportedExtensions.contains(requiredExtension)) {
+            m_Logger.info(std::format("  + {}", requiredExtension));
+        } else {
+            m_Logger.info(std::format("  - {}", requiredExtension));
+            requiredExtensionsSupported = false;
+        }
+    }
+
+    if (!requiredLayersSupported) throw std::runtime_error("Not all required layers are supported");
+    if (!requiredExtensionsSupported) throw std::runtime_error("Not all required extensions are supported");
+
+    vk::InstanceCreateInfo createInfo {};
+    createInfo.pApplicationInfo = &appInfo;
+    createInfo.enabledLayerCount = CONTAINER_COUNT(requiredLayers);
+    createInfo.ppEnabledLayerNames = requiredLayers.data();
+    createInfo.enabledExtensionCount = CONTAINER_COUNT(requiredExtensions);
+    createInfo.ppEnabledExtensionNames = requiredExtensions.data();
+
+    vk::Instance instance = VK_ERROR_CHECK(
+        vk::createInstance(createInfo),
+        "Instance creating caused an error"
+    );
+
     m_Logger.info("Instance was created successfully");
-    m_Instance = instance.value;
+    m_Instance = instance;
 }
