@@ -56,12 +56,12 @@ class Render {
         void createShaderModules();
         void createCommandPool();
         void createCommandBuffers();
+        void createSyncObjects();
         
         void createPipeline();
         void recordCommandBuffer(int index);
 
-        void createSyncObjects();
-        std::vector<vk::Semaphore> m_ImageAvailableSemaphores;
-        std::vector<vk::Semaphore> m_RenderFinishedSemaphores;
-        std::vector<vk::Fence> m_InFlightFences;
+        vk::Semaphore m_ImageAvailableSemaphore;
+        vk::Semaphore m_RenderFinishedSemaphore;
+        vk::Fence m_RenderFinishedFence;
 };
